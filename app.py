@@ -89,52 +89,62 @@ class ManifestProcessor:
                     data['container_type'] = data_row[2] if len(data_row) > 2 else ''
 
             # 5. 提取发货人信息 (Row 26-31)
-            elif ('发货人' in row_values[0] or ('发货' in row_values[0] and 'Shipper' in row_values[0])) and 'shipper' not in data:
+            elif ('发货人' in ''.join(row_values) or 'Shipper' in ''.join(row_values)) and 'shipper' not in data:
                 shipper = []
-                for i in range(row_idx + 2, min(row_idx + 6, sheet.nrows)):
+                for i in range(row_idx + 1, min(row_idx + 6, sheet.nrows)):
                     row_vals = [str(sheet.cell_value(i, col)) for col in range(sheet.ncols)]
-                    if '名称' in row_vals[0] and row_vals[1]:
-                        shipper.append(row_vals[1])
-                    elif '地址' in row_vals[0] and row_vals[1]:
-                        shipper.append(row_vals[1])
-                    elif '电话' in row_vals[0] and row_vals[1]:
-                        shipper.append(f'TEL: {row_vals[1]}')
+                    # 第二列是标签（名称、地址等），第三列是值
+                    if len(row_vals) > 2:
+                        label = row_vals[1]
+                        value = row_vals[2]
+                        if '名称' in label and value:
+                            shipper.append(value)
+                        elif '地址' in label and value:
+                            shipper.append(value)
+                        elif '电话' in label and value:
+                            shipper.append(f'TEL: {value}')
                 data['shipper'] = '\\n'.join(shipper) if shipper else ''
 
             # 6. 提取收货人信息 (Row 33-40)
-            elif ('收货人' in row_values[0] or ('收货' in row_values[0] and 'Consignee' in row_values[0])) and 'consignee' not in data:
+            elif ('收货人' in ''.join(row_values) or 'Consignee' in ''.join(row_values)) and 'consignee' not in data:
                 consignee = []
-                for i in range(row_idx + 2, min(row_idx + 8, sheet.nrows)):
+                for i in range(row_idx + 1, min(row_idx + 8, sheet.nrows)):
                     row_vals = [str(sheet.cell_value(i, col)) for col in range(sheet.ncols)]
-                    if '名称' in row_vals[0] and row_vals[1]:
-                        consignee.append(row_vals[1])
-                    elif '地址' in row_vals[0] and row_vals[1]:
-                        consignee.append(row_vals[1])
-                    elif '电话' in row_vals[0] and row_vals[1]:
-                        consignee.append(f'TEL: {row_vals[1]}')
-                    elif '具体联系人' in row_vals[0] and row_vals[1]:
-                        consignee.append(f'ATTN: {row_vals[1]}')
-                    elif '联系人电话' in row_vals[0] and row_vals[1]:
-                        consignee.append(f'MOB: {row_vals[1]}')
+                    if len(row_vals) > 2:
+                        label = row_vals[1]
+                        value = row_vals[2]
+                        if '名称' in label and value:
+                            consignee.append(value)
+                        elif '地址' in label and value:
+                            consignee.append(value)
+                        elif '电话' in label and value:
+                            consignee.append(f'TEL: {value}')
+                        elif '具体联系人' in label and value:
+                            consignee.append(f'ATTN: {value}')
+                        elif '联系人电话' in label and value:
+                            consignee.append(f'MOB: {value}')
                 data['consignee'] = '\\n'.join(consignee) if consignee else ''
 
             # 7. 提取通知人信息 (Row 42-47)
-            elif ('通知人' in row_values[0] or ('通知' in row_values[0] and 'Notifier' in row_values[0])) and 'notifier' not in data:
+            elif ('通知人' in ''.join(row_values) or 'Notifier' in ''.join(row_values)) and 'notifier' not in data:
                 notifier = []
-                for i in range(row_idx + 2, min(row_idx + 6, sheet.nrows)):
+                for i in range(row_idx + 1, min(row_idx + 6, sheet.nrows)):
                     row_vals = [str(sheet.cell_value(i, col)) for col in range(sheet.ncols)]
-                    if '名称' in row_vals[0] and row_vals[1]:
-                        notifier.append(row_vals[1])
-                    elif '地址' in row_vals[0] and row_vals[1]:
-                        notifier.append(row_vals[1])
-                    elif '电话' in row_vals[0] and row_vals[1]:
-                        notifier.append(f'TEL: {row_vals[1]}')
+                    if len(row_vals) > 2:
+                        label = row_vals[1]
+                        value = row_vals[2]
+                        if '名称' in label and value:
+                            notifier.append(value)
+                        elif '地址' in label and value:
+                            notifier.append(value)
+                        elif '电话' in label and value:
+                            notifier.append(f'TEL: {value}')
                 data['notifier'] = '\\n'.join(notifier) if notifier else ''
 
         return data
 
     def generate_bl_confirmation(self, output_path, consignor_info=None, consignee_info=None, notify_party_info=None):
-        """生成提单确认件"""
+        """生成提单确认件 - 完全使用舱单提取的数据"""
         doc = Document()
 
         # 设置页面边距
@@ -168,38 +178,44 @@ class ManifestProcessor:
         add_run(p, f"封号：{self.manifest_data.get('seal_no', '')}\n")
         add_run(p, f"箱型：{self.manifest_data.get('container_type', '')}\n")
 
-        # 发货人 - 优先使用舱单提取的数据
+        # 发货人 - 完全使用舱单提取的数据
         p = doc.add_paragraph()
         add_run(p, "发货人：\n")
         shipper = self.manifest_data.get('shipper', '')
         if shipper:
             for line in shipper.split('\\n'):
                 add_run(p, f"{line}\n")
-        elif consignor_info:
-            for line in consignor_info.split('\n'):
-                add_run(p, f"{line}\n")
+        else:
+            # 如果舱单中没有数据，使用用户输入（备用）
+            if consignor_info:
+                for line in consignor_info.split('\n'):
+                    add_run(p, f"{line}\n")
 
-        # 收货人 - 优先使用舱单提取的数据
+        # 收货人 - 完全使用舱单提取的数据
         p = doc.add_paragraph()
         add_run(p, "收货人：\n")
         consignee = self.manifest_data.get('consignee', '')
         if consignee:
             for line in consignee.split('\\n'):
                 add_run(p, f"{line}\n")
-        elif consignee_info:
-            for line in consignee_info.split('\n'):
-                add_run(p, f"{line}\n")
+        else:
+            # 如果舱单中没有数据，使用用户输入（备用）
+            if consignee_info:
+                for line in consignee_info.split('\n'):
+                    add_run(p, f"{line}\n")
 
-        # 通知人 - 优先使用舱单提取的数据
+        # 通知人 - 完全使用舱单提取的数据
         p = doc.add_paragraph()
         add_run(p, "通知人：\n")
         notifier = self.manifest_data.get('notifier', '')
         if notifier:
             for line in notifier.split('\\n'):
                 add_run(p, f"{line}\n")
-        elif notify_party_info:
-            for line in notify_party_info.split('\n'):
-                add_run(p, f"{line}\n")
+        else:
+            # 如果舱单中没有数据，使用用户输入（备用）
+            if notify_party_info:
+                for line in notify_party_info.split('\n'):
+                    add_run(p, f"{line}\n")
 
         # 品名
         p = doc.add_paragraph()
