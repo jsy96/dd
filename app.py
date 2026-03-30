@@ -227,127 +227,189 @@ class ManifestProcessor:
         workbook = xlwt.Workbook(encoding='utf-8')
         sheet = workbook.add_sheet('装箱单发票')
 
-        # 设置列宽 (基于 Excel 列宽单位，1单位约等于1/256字符宽)
-        sheet.col(0).width = 256 * 12
-        sheet.col(1).width = 256 * 2
-        sheet.col(2).width = 256 * 6
-        sheet.col(3).width = 256 * 8
-        sheet.col(4).width = 256 * 30
-        sheet.col(5).width = 256 * 10
-        sheet.col(6).width = 256 * 5
-        sheet.col(7).width = 256 * 10
+        # ========== 设置列宽 ==========
+        # xlwt列宽单位：1单位 = 1/256字符宽
+        # 原始数据：4192, 480, 1248, 1248, 8576, 2816, 1696, 1696, 1088, 1056
+        sheet.col(0).width = 4192    # 约16.4字符
+        sheet.col(1).width = 480     # 约1.9字符
+        sheet.col(2).width = 1248    # 约4.9字符
+        sheet.col(3).width = 1248    # 约4.9字符
+        sheet.col(4).width = 8576    # 约33.5字符
+        sheet.col(5).width = 2816    # 约11字符
+        sheet.col(6).width = 1696    # 约6.6字符
+        sheet.col(7).width = 1696    # 约6.6字符
+        sheet.col(8).width = 1088    # 约4.3字符
+        sheet.col(9).width = 1056    # 约4.1字符
 
-        # 定义样式
-        def get_style(bold=False, horiz_align='LEFT', font_size=11):
-            style = xlwt.XFStyle()
-            font = xlwt.Font()
-            font.height = 220 * font_size // 11  # 转换点数
-            font.bold = bold
-            font.name = 'Arial'
-            style.font = font
+        # ========== 定义样式函数 ==========
+        def create_font(name, size, bold=False):
+            f = xlwt.Font()
+            f.name = name
+            f.height = int(size * 20)  # 点数转twips
+            f.bold = bold
+            return f
 
-            alignment = xlwt.Alignment()
-            if horiz_align == 'CENTER':
-                alignment.horz = xlwt.Alignment.HORZ_CENTER
-            elif horiz_align == 'RIGHT':
-                alignment.horz = xlwt.Alignment.HORZ_RIGHT
-            else:
-                alignment.horz = xlwt.Alignment.HORZ_LEFT
-            style.alignment = alignment
+        def create_borders(top=False, bottom=False, left=False, right=False):
+            b = xlwt.Borders()
+            if top:
+                b.top = xlwt.Borders.THIN
+            if bottom:
+                b.bottom = xlwt.Borders.THIN
+            if left:
+                b.left = xlwt.Borders.THIN
+            if right:
+                b.right = xlwt.Borders.THIN
+            return b
 
-            return style
+        def create_style(font, borders=None):
+            s = xlwt.XFStyle()
+            s.font = font
+            if borders:
+                s.borders = borders
+            # 默认左对齐
+            a = xlwt.Alignment()
+            a.horz = xlwt.Alignment.HORZ_LEFT
+            s.alignment = a
+            return s
 
-        def get_border_style(thin=True):
-            style = xlwt.XFStyle()
-            borders = xlwt.Borders()
-            if thin:
-                borders.left = xlwt.Borders.THIN
-                borders.right = xlwt.Borders.THIN
-                borders.top = xlwt.Borders.THIN
-                borders.bottom = xlwt.Borders.THIN
-            style.borders = borders
-            return style
+        # ========== 预定义样式 ==========
+        # 中文标题样式（宋体24pt粗体）
+        font_title_cn = create_font('宋体', 24, True)
+        style_title_cn = create_style(font_title_cn)
 
-        # 定义带边框的样式
-        border_style = get_border_style()
-        border_style.font = get_style().font
-        border_style.alignment = get_style().alignment
+        # 英文标题样式（宋体18pt粗体）
+        font_title_en = create_font('宋体', 18, True)
+        style_title_en = create_style(font_title_en)
 
+        # 发票标题（宋体24pt）
+        font_invoice = create_font('宋体', 24, False)
+        style_invoice = create_style(font_invoice)
+
+        # INVOICE（Times New Roman 16pt）
+        font_invoice_en = create_font('Times New Roman', 16, False)
+        style_invoice_en = create_style(font_invoice_en)
+
+        # 普通文本（宋体10pt/12pt）
+        font_normal_10 = create_font('宋体', 10, False)
+        style_normal_10 = create_style(font_normal_10)
+
+        font_normal_12 = create_font('宋体', 12, False)
+        style_normal_12 = create_style(font_normal_12)
+
+        # 数字文本（Times New Roman 11pt/12pt）
+        font_number_11 = create_font('Times New Roman', 11, False)
+        style_number_11 = create_style(font_number_11)
+
+        font_number_12 = create_font('Times New Roman', 12, False)
+        style_number_12 = create_style(font_number_12)
+
+        # 表头样式（宋体10pt，带边框）
+        font_header = create_font('宋体', 10, False)
+        borders_all = create_borders(top=True, bottom=True, left=True, right=True)
+        style_header = create_style(font_header, borders_all)
+
+        # ========== 写入数据 ==========
         # Row 0: 空行
         pass
 
-        # Row 1: 公司名称 (合并单元格 A1-O1)
-        title_style = get_style(bold=True)
-        sheet.write_merge(1, 1, 0, 14, '浙江长江国际有限公司', title_style)
+        # Row 1: 公司名称（宋体24pt粗体，合并C0-C9，行高465）
+        sheet.row(1).height_mismatch = True
+        sheet.row(1).height = 465
+        sheet.write_merge(1, 1, 0, 9, '浙江长江国际有限公司', style_title_cn)
 
-        # Row 2: 英文名称 (合并单元格 A2-O2)
-        normal_style = get_style()
-        sheet.write_merge(2, 2, 0, 14, '            ZHEJIANG CHEUNG KONG INTERNATIONAL LIMITED', normal_style)
+        # Row 2: 英文名称（宋体18pt粗体，合并C0-C9，行高420）
+        sheet.row(2).height_mismatch = True
+        sheet.row(2).height = 420
+        sheet.write_merge(2, 2, 0, 9, '            ZHEJIANG CHEUNG KONG INTERNATIONAL LIMITED', style_title_en)
 
-        # Row 3: 发票 第 [发票号] 号
-        bold_style = get_style(bold=True)
-        sheet.write(3, 4, '发票', bold_style)
-        sheet.write(3, 5, '第', normal_style)
-        sheet.write(3, 6, invoice_no or 'YWSJ2602044', normal_style)
-        sheet.write(3, 7, '号', normal_style)
+        # Row 3: 发票（宋体24pt，合并C4-C5，行高300）
+        sheet.row(3).height_mismatch = True
+        sheet.row(3).height = 300
+        sheet.write_merge(3, 3, 4, 5, '发票', style_invoice)
+        sheet.write(3, 6, '第', style_normal_10)
+        # 发票号（合并C7-C9，宋体10pt）
+        sheet.write_merge(3, 3, 7, 9, invoice_no or 'YWSJ2602044', style_normal_10)
+        sheet.write(3, 10, '号', style_normal_10)
 
-        # Row 4: No. 和占位符
-        sheet.write(4, 5, 'No.', normal_style)
-        sheet.write_merge(4, 4, 6, 8, '………………………………', normal_style)
+        # Row 4: No.（行高285）
+        sheet.row(4).height_mismatch = True
+        sheet.row(4).height = 285
+        # 发票合并区域继续
+        sheet.write_merge(4, 4, 4, 5, '', style_invoice)
+        sheet.write(4, 6, 'No.', style_normal_10)
+        sheet.write_merge(4, 4, 7, 9, '………………………………', style_normal_10)
 
-        # Row 5: INVOICE 日期 [日期]
-        sheet.write(5, 4, 'INVOICE', bold_style)
-        sheet.write(5, 5, '日期', normal_style)
-        sheet.write(5, 6, invoice_date or datetime.now().strftime('%b.%d.%Y').upper(), normal_style)
+        # Row 5: INVOICE（Times New Roman 16pt，合并C4-C5，行高300）
+        sheet.row(5).height_mismatch = True
+        sheet.row(5).height = 300
+        sheet.write_merge(5, 5, 4, 5, 'INVOICE', style_invoice_en)
+        sheet.write(5, 6, '日期', style_normal_10)
+        sheet.write_merge(5, 5, 7, 9, invoice_date or datetime.now().strftime('%b.%d.%Y').upper(), style_normal_10)
 
-        # Row 6: Date 占位符
-        sheet.write(6, 5, 'Date……………………………………', normal_style)
+        # Row 6: Date（行高345）
+        sheet.row(6).height_mismatch = True
+        sheet.row(6).height = 345
+        sheet.write_merge(6, 6, 4, 5, '', style_invoice_en)
+        sheet.write(6, 6, 'Date……………………………………', style_normal_12)
 
-        # Row 7: 收货人 | 信用证第 [ ] 号
+        # Row 7: 收货人（行高375）
+        sheet.row(7).height_mismatch = True
+        sheet.row(7).height = 375
         consignee = consignee_name or self.manifest_data.get('consignee', 'SIJI SHIPPING L.L.C')
-        # 简化收货人名称（只取第一行或名称部分）
         if '\\n' in consignee:
             consignee = consignee.split('\\n')[0]
-        sheet.write(7, 0, consignee, normal_style)
-        sheet.write(7, 5, '信用证第', normal_style)
-        sheet.write(7, 6, '', normal_style)
-        sheet.write(7, 7, '号', normal_style)
+        sheet.write(7, 0, consignee, style_normal_12)
+        sheet.write(7, 6, '信用证第', style_normal_10)
+        sheet.write(7, 10, '号', style_normal_10)
 
-        # Row 8: To占位 | L/C NO占位
-        sheet.write(8, 0, 'To:…………………………………………………………', normal_style)
-        sheet.write(8, 5, 'L/C NO:………………………………', normal_style)
+        # Row 8: To占位（行高345）
+        sheet.row(8).height_mismatch = True
+        sheet.row(8).height = 345
+        sheet.write(8, 0, 'To:…………………………………………………………', style_normal_12)
+        sheet.write(8, 6, 'L/C NO:……………………………', style_normal_10)
 
-        # Row 9: 表头 (带边框)
-        header_style = get_style(bold=True)
-        borders = xlwt.Borders()
-        borders.left = xlwt.Borders.THIN
-        borders.right = xlwt.Borders.THIN
-        borders.top = xlwt.Borders.THIN
-        borders.bottom = xlwt.Borders.THIN
-        header_style.borders = borders
+        # Row 9: 表头（行高510，带边框）
+        sheet.row(9).height_mismatch = True
+        sheet.row(9).height = 510
+        sheet.write(9, 0, '唛头号码    Marks & Numbers', style_header)
+        sheet.write_merge(9, 9, 2, 4, '数量与品名                                  Quantities and Descriptions', style_header)
+        sheet.write_merge(9, 9, 5, 6, '单价            Unit price', style_header)
+        sheet.write_merge(9, 9, 7, 9, '金额       Amount', style_header)
 
-        sheet.write(9, 0, '唛头号码    Marks & Numbers', header_style)
-        sheet.write_merge(9, 9, 1, 2, '', header_style)
-        sheet.write(9, 3, '数量与品名                                  Quantities and Descriptions', header_style)
-        sheet.write_merge(9, 9, 4, 5, '', header_style)
-        sheet.write(9, 6, '单价            Unit price', header_style)
-        sheet.write_merge(9, 9, 7, 8, '金额       Amount', header_style)
-
-        # Row 10: N/M | CIF DUBAI
+        # Row 10: N/M 和 CIF DUBAI（行高315，带边框）
+        sheet.row(10).height_mismatch = True
+        sheet.row(10).height = 315
         marks = self.manifest_data.get('marks', 'N/M')
-        sheet.write(10, 0, marks, header_style)
-        sheet.write_merge(10, 10, 1, 4, 'CIF DUBAI', header_style)
+        sheet.write(10, 0, marks, style_header)
+        sheet.write_merge(10, 10, 5, 7, 'CIF DUBAI', style_header)
 
-        # 商品明细行
+        # ========== 商品明细行 ==========
         if items:
             row_idx = 11
             for item in items:
-                sheet.write(row_idx, 2, str(item.get('qty', '')), border_style)
-                sheet.write(row_idx, 3, item.get('unit', 'CTNS'), border_style)
-                sheet.write(row_idx, 4, item.get('name', ''), border_style)
-                sheet.write(row_idx, 5, str(item.get('unit_price', '')), border_style)
-                sheet.write(row_idx, 6, '/CTNS', border_style)
-                sheet.write(row_idx, 7, str(item.get('amount', '')), border_style)
+                sheet.row(row_idx).height_mismatch = True
+                sheet.row(row_idx).height = 315
+
+                # C2: 数量
+                sheet.write(row_idx, 2, str(item.get('qty', '')), style_number_12)
+
+                # C3: 单位
+                sheet.write(row_idx, 3, item.get('unit', 'CTNS'), style_normal_12)
+
+                # C4: 品名
+                sheet.write(row_idx, 4, item.get('name', ''), style_normal_12)
+
+                # C5: 单价
+                sheet.write(row_idx, 5, str(item.get('unit_price', '')), style_number_11)
+
+                # C6: /CTNS
+                sheet.write(row_idx, 6, '/CTNS', style_normal_12)
+
+                # C7-C9: 金额（合并单元格）
+                borders_sides = create_borders(left=True, right=True)
+                style_amount = create_style(font_number_11, borders_sides)
+                sheet.write_merge(row_idx, row_idx, 7, 9, str(item.get('amount', '')), style_amount)
+
                 row_idx += 1
 
         workbook.save(output_path)
