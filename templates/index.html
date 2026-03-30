@@ -557,15 +557,25 @@ EMAIL:mailto:Brother.transport@hotmail.com</textarea>
                 { key: 'packages', label: '件数' },
                 { key: 'gross_weight', label: '毛重(KGS)' },
                 { key: 'volume', label: '体积(CBM)' },
-                { key: 'cargo_name', label: '品名' }
+                { key: 'cargo_name', label: '品名' },
+                { key: 'shipper', label: '发货人' },
+                { key: 'consignee', label: '收货人' },
+                { key: 'notifier', label: '通知人' }
             ];
 
-            grid.innerHTML = fields.map(field => `
+            grid.innerHTML = fields.map(field => {
+                let value = data[field.key] || '-';
+                // 处理换行符显示
+                if (typeof value === 'string' && value.includes('\\n')) {
+                    value = value.replace(/\\n/g, '<br>');
+                }
+                return `
                 <div class="preview-item">
                     <div class="label">${field.label}</div>
-                    <div class="value">${data[field.key] || '-'}</div>
+                    <div class="value">${value}</div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // 处理舱单并生成文档
