@@ -55,17 +55,21 @@ class ManifestProcessor:
         for row_idx in range(sheet.nrows):
             row_values = [str(sheet.cell_value(row_idx, col_idx)) if sheet.cell_value(row_idx, col_idx) else '' for col_idx in range(sheet.ncols)]
 
-            # 提取基本信息
-            if '船名' in row_values[0]:
+            # 1. 提取基本信息 (Row 3): 船名、航次、目的港
+            if '船名' in row_values[0] and 'vessel_name' not in data:
                 data['vessel_name'] = row_values[1] if len(row_values) > 1 else ''
                 data['voyage_no'] = row_values[4] if len(row_values) > 4 else ''
-            elif '目的港' in row_values[0]:
-                data['port_of_discharge'] = row_values[7] if len(row_values) > 7 else row_values[1] if len(row_values) > 1 else ''
-            elif '总提单号' in row_values[0]:
+                # 同时提取目的港（在同一行，查找"目的港"列）
+                for col_idx, val in enumerate(row_values):
+                    if val == '目的港' and col_idx + 1 < len(row_values) and 'port_of_discharge' not in data:
+                        data['port_of_discharge'] = row_values[col_idx + 1]
+
+            # 2. 提取总提单号 (Row 4)
+            elif '总提单号' in row_values[0] and 'master_bl_no' not in data:
                 data['master_bl_no'] = row_values[1] if len(row_values) > 1 else ''
 
-            # 提取分票统计数据 (Row 7-8)
-            elif '提单号' in row_values and '英文品名' in row_values:
+            # 3. 提取分票统计数据 (Row 7-8) - 提单号、英文品名、唛头、件数、包装单位、毛重、体积
+            elif ('提单号' in row_values and '英文品名' in row_values) and 'bl_no' not in data:
                 if row_idx + 1 < sheet.nrows:
                     data_row = [str(sheet.cell_value(row_idx + 1, col_idx)) for col_idx in range(sheet.ncols)]
                     data['bl_no'] = data_row[0]
@@ -76,64 +80,53 @@ class ManifestProcessor:
                     data['gross_weight'] = data_row[11] if len(data_row) > 11 else ''
                     data['volume'] = data_row[12] if len(data_row) > 12 else ''
 
-            # 提取按箱统计数据 (Row 11-12)
-            elif '箱号' in row_values and '封号' in row_values and '提单号' in row_values:
+            # 4. 提取按箱统计数据 (Row 11-12) - 箱号、封号、箱型
+            elif ('箱号' in row_values and '封号' in row_values and '提单号' in row_values) and 'container_no' not in data:
                 if row_idx + 1 < sheet.nrows:
                     data_row = [str(sheet.cell_value(row_idx + 1, col_idx)) for col_idx in range(sheet.ncols)]
                     data['container_no'] = data_row[0]
                     data['seal_no'] = data_row[1] if len(data_row) > 1 else ''
                     data['container_type'] = data_row[2] if len(data_row) > 2 else ''
 
-            # 提取发货人信息 (Row 26-31)
-            elif '发货人' in row_values[0] or ('发货' in row_values[0] and 'Shipper' in row_values[0]):
+            # 5. 提取发货人信息 (Row 26-31)
+            elif ('发货人' in row_values[0] or ('发货' in row_values[0] and 'Shipper' in row_values[0])) and 'shipper' not in data:
                 shipper = []
                 for i in range(row_idx + 2, min(row_idx + 6, sheet.nrows)):
                     row_vals = [str(sheet.cell_value(i, col)) for col in range(sheet.ncols)]
-                    # 名称
                     if '名称' in row_vals[0] and row_vals[1]:
                         shipper.append(row_vals[1])
-                    # 地址
                     elif '地址' in row_vals[0] and row_vals[1]:
                         shipper.append(row_vals[1])
-                    # 电话
                     elif '电话' in row_vals[0] and row_vals[1]:
                         shipper.append(f'TEL: {row_vals[1]}')
                 data['shipper'] = '\\n'.join(shipper) if shipper else ''
 
-            # 提取收货人信息 (Row 33-40)
-            elif '收货人' in row_values[0] or ('收货' in row_values[0] and 'Consignee' in row_values[0]):
+            # 6. 提取收货人信息 (Row 33-40)
+            elif ('收货人' in row_values[0] or ('收货' in row_values[0] and 'Consignee' in row_values[0])) and 'consignee' not in data:
                 consignee = []
                 for i in range(row_idx + 2, min(row_idx + 8, sheet.nrows)):
                     row_vals = [str(sheet.cell_value(i, col)) for col in range(sheet.ncols)]
-                    # 名称
                     if '名称' in row_vals[0] and row_vals[1]:
                         consignee.append(row_vals[1])
-                    # 地址
                     elif '地址' in row_vals[0] and row_vals[1]:
                         consignee.append(row_vals[1])
-                    # 电话
                     elif '电话' in row_vals[0] and row_vals[1]:
                         consignee.append(f'TEL: {row_vals[1]}')
-                    # 具体联系人
                     elif '具体联系人' in row_vals[0] and row_vals[1]:
                         consignee.append(f'ATTN: {row_vals[1]}')
-                    # 联系人电话
                     elif '联系人电话' in row_vals[0] and row_vals[1]:
                         consignee.append(f'MOB: {row_vals[1]}')
                 data['consignee'] = '\\n'.join(consignee) if consignee else ''
 
-            # 提取通知人信息 (Row 42-47)
-            elif '通知人' in row_values[0] or ('通知' in row_values[0] and 'Notifier' in row_values[0]):
+            # 7. 提取通知人信息 (Row 42-47)
+            elif ('通知人' in row_values[0] or ('通知' in row_values[0] and 'Notifier' in row_values[0])) and 'notifier' not in data:
                 notifier = []
                 for i in range(row_idx + 2, min(row_idx + 6, sheet.nrows)):
                     row_vals = [str(sheet.cell_value(i, col)) for col in range(sheet.ncols)]
-                    # 名称
                     if '名称' in row_vals[0] and row_vals[1]:
                         notifier.append(row_vals[1])
-                    # 地址
                     elif '地址' in row_vals[0] and row_vals[1]:
                         notifier.append(row_vals[1])
-                    # 电话
                     elif '电话' in row_vals[0] and row_vals[1]:
                         notifier.append(f'TEL: {row_vals[1]}')
                 data['notifier'] = '\\n'.join(notifier) if notifier else ''
