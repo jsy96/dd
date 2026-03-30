@@ -35,6 +35,7 @@ MANIFEST
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Claude
 .claude/
@@ -44,6 +45,10 @@ Thumbs.db
 tmp/
 *.log
 
-# Data files (optional - uncomment if you don't want to track data files)
-# *.xls
-# *.doc
+# Data files - 不要上传到版本控制
+*.zip
+*.xls
+*.xlsx
+*.doc
+*.docx
+~$*
