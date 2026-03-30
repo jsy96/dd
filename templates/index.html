@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>舱单数据处理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="file"],
+        .form-group input[type="date"],
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload-area:hover {
+            background: #f0f2ff;
+            border-color: #5568d3;
+        }
+
+        .file-upload-area.dragover {
+            background: #e8ebff;
+            border-color: #4455cc;
+        }
+
+        .file-upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .file-upload-text {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .file-upload-hint {
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .preview-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .preview-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+
+        .preview-item .label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .preview-item .value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .items-editor {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 3fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .item-row input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .format-help {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .format-help code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚢 舱单数据处理系统</h1>
+            <p>自动提取舱单数据并生成提单确认件和装箱单发票</p>
+        </div>
+
+        <div class="main-content">
+            <!-- 提示信息 -->
+            <div id="alertSuccess" class="alert alert-success"></div>
+            <div id="alertError" class="alert alert-error"></div>
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px; color: #666;">正在处理中...</p>
+            </div>
+
+            <!-- 文件上传区域 -->
+            <div class="section">
+                <h2 class="section-title">1. 上传舱单文件</h2>
+                <div class="file-upload-area" id="dropZone">
+                    <div class="file-upload-icon">📁</div>
+                    <div class="file-upload-text">点击选择或拖拽舱单文件到此处</div>
+                    <div class="file-upload-hint">支持 .xls 格式的舱单文件</div>
+                    <input type="file" id="manifestFile" accept=".xls,.xlsx" style="display: none;">
+                </div>
+                <div id="fileInfo" style="margin-top: 10px; display: none;">
+                    <span style="color: #28a745;">✓ 已选择: </span>
+                    <span id="fileName" style="color: #333;"></span>
+                </div>
+            </div>
+
+            <!-- 预览提取的数据 -->
+            <div class="section" id="previewSection" style="display: none;">
+                <h2 class="section-title">2. 提取的数据预览</h2>
+                <div class="preview-section">
+                    <div class="preview-grid" id="previewGrid">
+                        <!-- 动态填充 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 额外信息填写 -->
+            <div class="section" id="extraInfoSection" style="display: none;">
+                <h2 class="section-title">3. 填写额外信息</h2>
+
+                <!-- 装箱单发票信息 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="invoiceNo">发票号</label>
+                        <input type="text" id="invoiceNo" placeholder="例如: YWSJ2602044">
+                    </div>
+                    <div class="form-group">
+                        <label for="invoiceDate">发票日期</label>
+                        <input type="date" id="invoiceDate">
+                    </div>
+                </div>
+
+                <!-- 提单确认件信息 -->
+                <div class="form-group">
+                    <label for="consignor">发货人信息 (每行一项)</label>
+                    <textarea id="consignor" placeholder="公司名称&#10;地址&#10;电话/传真&#10;邮箱">ZHEJIANG CHEUNG KONG INTERNATIONAL LIMITED
+FLAT/RM P 4/F LLADRO CENTRE 72 HOI YUEN ROAD KWUN TONG KL
+TEL:0085228150191 FAX:0085227779733
+EMAIL:mailto:3287077168@QQ.COM</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="consignee">收货人信息 (每行一项)</label>
+                    <textarea id="consignee" placeholder="公司名称&#10;许可证号&#10;地址&#10;联系方式">SIJI SHIPPING L.L.C
+LICENSE NO.:797096
+ADD:Somalia Building 207, Downtown Hotel Opposite , Deira, DUBAI,U.A.E
+P.O.BOX：42607
+MOB:00971-557068999
+TEL: 00971-4-2256737
+EMAIL:mailto:Brother.transport@hotmail.com</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="notifyParty">通知人信息</label>
+                    <textarea id="notifyParty" placeholder="通知人信息">SAME AS CONSIGNEE</textarea>
+                </div>
+
+                <!-- 商品明细编辑 -->
+                <div class="form-group">
+                    <label>装箱单发票商品明细</label>
+                    <div class="format-help">
+                        格式说明：数量 | 单位 | 品名 | 单价 | 金额（每行一项）
+                        <br><code>14 | CTNS | PLASTIC CAP | 11.0 | 154.0</code>
+                    </div>
+                    <div class="items-editor">
+                        <div id="itemsList"></div>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="addItemRow()">+ 添加商品</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="section" id="actionSection" style="display: none;">
+                <h2 class="section-title">4. 生成文档</h2>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" onclick="previewData()">👁️ 预览提取数据</button>
+                    <button type="button" class="btn btn-primary" onclick="processManifest()">📄 生成提单确认件和装箱单发票</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let manifestData = null;
+
+        // 文件上传处理
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('manifestFile');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileInfo').style.display = 'block';
+            showSections();
+        }
+
+        function showSections() {
+            document.getElementById('previewSection').style.display = 'block';
+            document.getElementById('extraInfoSection').style.display = 'block';
+            document.getElementById('actionSection').style.display = 'block';
+        }
+
+        // 隐藏提示
+        function hideAlerts() {
+            document.getElementById('alertSuccess').style.display = 'none';
+            document.getElementById('alertError').style.display = 'none';
+        }
+
+        // 显示提示
+        function showAlert(type, message) {
+            hideAlerts();
+            const alertEl = document.getElementById(type === 'success' ? 'alertSuccess' : 'alertError');
+            alertEl.textContent = message;
+            alertEl.style.display = 'block';
+        }
+
+        // 显示/隐藏加载状态
+        function setLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        // 预览数据
+        async function previewData() {
+            const file = fileInput.files[0];
+            if (!file) {
+                showAlert('error', '请先上传舱单文件');
+                return;
+            }
+
+            setLoading(true);
+            hideAlerts();
+
+            const formData = new FormData();
+            formData.append('manifest_file', file);
+
+            try {
+                const response = await fetch('/api/preview', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    manifestData = result.data;
+                    displayPreview(result.data);
+                    showAlert('success', '数据提取成功！');
+                } else {
+                    showAlert('error', result.error || '数据提取失败');
+                }
+            } catch (error) {
+                showAlert('error', '请求失败: ' + error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // 显示预览数据
+        function displayPreview(data) {
+            const grid = document.getElementById('previewGrid');
+            const fields = [
+                { key: 'vessel_name', label: '船名' },
+                { key: 'voyage_no', label: '航次' },
+                { key: 'port_of_discharge', label: '目的港' },
+                { key: 'master_bl_no', label: '总提单号' },
+                { key: 'bl_no', label: '提单号' },
+                { key: 'container_no', label: '箱号' },
+                { key: 'seal_no', label: '封号' },
+                { key: 'container_type', label: '箱型' },
+                { key: 'packages', label: '件数' },
+                { key: 'gross_weight', label: '毛重(KGS)' },
+                { key: 'volume', label: '体积(CBM)' },
+                { key: 'cargo_name', label: '品名' }
+            ];
+
+            grid.innerHTML = fields.map(field => `
+                <div class="preview-item">
+                    <div class="label">${field.label}</div>
+                    <div class="value">${data[field.key] || '-'}</div>
+                </div>
+            `).join('');
+        }
+
+        // 处理舱单并生成文档
+        async function processManifest() {
+            const file = fileInput.files[0];
+            if (!file) {
+                showAlert('error', '请先上传舱单文件');
+                return;
+            }
+
+            setLoading(true);
+            hideAlerts();
+
+            // 收集表单数据
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                if (inputs[0].value) {
+                    items.push([
+                        inputs[0].value,  // 数量
+                        inputs[1].value,  // 单位
+                        inputs[2].value,  // 品名
+                        inputs[3].value,  // 单价
+                        inputs[4].value   // 金额
+                    ].join('|'));
+                }
+            });
+
+            const formData = new FormData();
+            formData.append('manifest_file', file);
+            formData.append('invoice_no', document.getElementById('invoiceNo').value);
+            formData.append('invoice_date', document.getElementById('invoiceDate').value);
+            formData.append('consignor', document.getElementById('consignor').value);
+            formData.append('consignee', document.getElementById('consignee').value);
+            formData.append('notify_party', document.getElementById('notifyParty').value);
+            formData.append('items', items.join('\n'));
+
+            try {
+                const response = await fetch('/api/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('success', '文档生成成功！');
+                } else {
+                    showAlert('error', result.error || '文档生成失败');
+                }
+            } catch (error) {
+                showAlert('error', '请求失败: ' + error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // 商品明细行管理
+        function addItemRow(data = {}) {
+            const container = document.getElementById('itemsList');
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            row.innerHTML = `
+                <input type="text" placeholder="数量" value="${data.qty || ''}">
+                <input type="text" placeholder="单位" value="${data.unit || 'CTNS'}">
+                <input type="text" placeholder="品名" value="${data.name || ''}">
+                <input type="text" placeholder="单价" value="${data.unit_price || ''}">
+                <input type="text" placeholder="金额" value="${data.amount || ''}">
+                <button type="button" class="btn btn-danger btn-small" onclick="this.parentElement.remove()">删除</button>
+            `;
+            container.appendChild(row);
+        }
+
+        // 初始化：添加几个默认商品行
+        window.addEventListener('DOMContentLoaded', () => {
+            const defaultItems = [
+                { qty: '14', unit: 'CTNS', name: 'PLASTIC CAP', unit_price: '11.0', amount: '154.0' },
+                { qty: '50', unit: 'CTNS', name: 'HAIR BAND', unit_price: '12.0', amount: '600.0' },
+                { qty: '10', unit: 'CTNS', name: 'POLYESTER FABRIC', unit_price: '23.0', amount: '230.0' }
+            ];
+            defaultItems.forEach(item => addItemRow(item));
+
+            // 设置默认日期
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('invoiceDate').value = today;
+        });
+    </script>
+</body>
+</html>

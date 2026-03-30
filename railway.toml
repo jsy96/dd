@@ -1,0 +1,11 @@
+[build]
+builder = "nixpacks"
+
+[build.env]
+PYTHON_VERSION = "3.9"
+
+[deploy]
+startCommand = "gunicorn app:app"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
