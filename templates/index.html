@@ -421,11 +421,28 @@ EMAIL:mailto:Brother.transport@hotmail.com</textarea>
                     <button type="button" class="btn btn-primary" onclick="processManifest()">📄 生成提单确认件和装箱单发票</button>
                 </div>
             </div>
+
+            <!-- 下载文档区域 -->
+            <div class="section" id="downloadSection" style="display: none;">
+                <h2 class="section-title">5. 下载文档</h2>
+                <div class="preview-section">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-success" onclick="downloadBL()">📥 下载提单确认件 (.docx)</button>
+                        <button type="button" class="btn btn-success" onclick="downloadPL()">📥 下载装箱单发票 (.xls)</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         let manifestData = null;
+        let generatedDocuments = {
+            blData: null,
+            plData: null,
+            blNo: '',
+            containerNo: ''
+        };
 
         // 文件上传处理
         const dropZone = document.getElementById('dropZone');
@@ -595,7 +612,15 @@ EMAIL:mailto:Brother.transport@hotmail.com</textarea>
                 const result = await response.json();
 
                 if (result.success) {
-                    showAlert('success', '文档生成成功！');
+                    // 保存生成的文档数据
+                    generatedDocuments.blData = result.bl_document;
+                    generatedDocuments.plData = result.pl_document;
+                    generatedDocuments.blNo = result.extracted_data.bl_no || result.extracted_data.master_bl_no || '';
+                    generatedDocuments.containerNo = result.extracted_data.container_no || '';
+
+                    // 显示下载区域
+                    document.getElementById('downloadSection').style.display = 'block';
+                    showAlert('success', '文档生成成功！请点击下方按钮下载。');
                 } else {
                     showAlert('error', result.error || '文档生成失败');
                 }
@@ -635,6 +660,64 @@ EMAIL:mailto:Brother.transport@hotmail.com</textarea>
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('invoiceDate').value = today;
         });
+
+        // 下载提单确认件
+        function downloadBL() {
+            if (!generatedDocuments.blData) {
+                showAlert('error', '请先生成文档');
+                return;
+            }
+
+            // 将 base64 转换为 blob
+            const byteCharacters = atob(generatedDocuments.blData);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+
+            // 创建下载链接
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `提单确认件_${generatedDocuments.blNo}_${generatedDocuments.containerNo}.docx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showAlert('success', '提单确认件下载成功！');
+        }
+
+        // 下载装箱单发票
+        function downloadPL() {
+            if (!generatedDocuments.plData) {
+                showAlert('error', '请先生成文档');
+                return;
+            }
+
+            // 将 base64 转换为 blob
+            const byteCharacters = atob(generatedDocuments.plData);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/vnd.ms-excel' });
+
+            // 创建下载链接
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `装箱单发票_${generatedDocuments.blNo}_${generatedDocuments.containerNo}.xls`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showAlert('success', '装箱单发票下载成功！');
+        }
     </script>
 </body>
 </html>

@@ -15,6 +15,7 @@ from docx.oxml.ns import qn
 import os
 import io
 import tempfile
+import base64
 from datetime import datetime
 
 app = Flask(__name__)
@@ -286,6 +287,12 @@ def index():
     return render_template('index.html')
 
 
+def file_to_base64(file_path):
+    """将文件转换为 base64 编码"""
+    with open(file_path, 'rb') as f:
+        return base64.b64encode(f.read()).decode('utf-8')
+
+
 @app.route('/api/process', methods=['POST'])
 def process_manifest():
     """处理舱单并生成文档"""
@@ -347,10 +354,24 @@ def process_manifest():
             items=items if items else None
         )
 
-        # 返回文件
+        # 将文件转换为 base64
+        bl_data = file_to_base64(bl_output.name)
+        pl_data = file_to_base64(pl_output.name)
+
+        # 清理临时文件
+        try:
+            os.unlink(temp_manifest.name)
+            os.unlink(bl_output.name)
+            os.unlink(pl_output.name)
+        except:
+            pass
+
+        # 返回 base64 编码的文件数据
         return jsonify({
             'success': True,
             'message': '文档生成成功！',
+            'bl_document': bl_data,
+            'pl_document': pl_data,
             'extracted_data': processor.manifest_data
         })
 
